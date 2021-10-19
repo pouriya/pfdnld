@@ -1,4 +1,4 @@
-DOWNLOAD_LINK=
+DOWNLOAD_LINK=https://github.com/pouriya/pfdnld/archive/refs/heads/master.zip
 TEST_OUT_DIR=$(CURDIR)/_test/out
 TEST_TMP_DIR=$(CURDIR)/_test/tmp
 TEST_CFG_DIR=$(CURDIR)/_test/cfg
@@ -6,8 +6,11 @@ TEST_LINK_FILE=$(TEST_CFG_DIR)/links.example
 TEST_DOWNLOAD_RESULT_FILE=$(TEST_CFG_DIR)/download_result.example
 RUN_EXAMPLE_COMMAND=./pfdnld.py --link-file $(TEST_LINK_FILE) --download-result-file $(TEST_DOWNLOAD_RESULT_FILE) --out-dir $(TEST_OUT_DIR) --tmp-dir $(TEST_TMP_DIR)
 
-example:
-	@ mkdir -p _test && rm -rf _test/* && mkdir $(TEST_OUT_DIR) && mkdir $(TEST_TMP_DIR) && mkdir $(TEST_CFG_DIR)
+clean-example:
+	@ rm -rf _test
+
+example: clean-example
+	@ mkdir _test && mkdir $(TEST_OUT_DIR) && mkdir $(TEST_TMP_DIR) && mkdir $(TEST_CFG_DIR)
 	@ echo "$(DOWNLOAD_LINK)" >> $(TEST_LINK_FILE)
 	@ echo "$(DOWNLOAD_LINK) a/b/c" >> $(TEST_LINK_FILE)
 	@ echo "$(DOWNLOAD_LINK) /foo/bar/baz" >> $(TEST_LINK_FILE)
