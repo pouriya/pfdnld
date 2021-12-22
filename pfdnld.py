@@ -132,14 +132,31 @@ def truncate_download_result_file(filename):
     return truncate_file(filename)
 
 
-def append_download_result_to_file(filename, link, output_dir, download_result):
+def append_download_attempt_to_file(filename, link, output_dir):
+    try:
+        fd = open(filename, 'a')
+    except Exception as open_error:
+        log('{red}could not open file {!r} for appending attempt status: {}', [filename, open_error])
+        return False
+    text = '{} {} '.format(link, output_dir)
+    length = len(text) + 5  # (len(str(False)))
+    try:
+        fd.write((length * '*') + '\n' + text)
+    except Exception as write_error:
+        log('{red}could not write attempt status to file {!r}: {}', [filename, write_error])
+        return False
+    fd.close()
+    return True
+
+
+def append_download_result_to_file(filename, download_result):
     try:
         fd = open(filename, 'a')
     except Exception as open_error:
         log('{red}could not open file {!r} for appending: {}', [filename, open_error])
         return False
     try:
-        fd.write('{} {} {}\n'.format(link, output_dir, download_result))
+        fd.write('{}\n'.format(download_result))
     except Exception as write_error:
         log('{red}could not write download result to file {!r}: {}', [filename, write_error])
         return False
@@ -150,9 +167,10 @@ def append_download_result_to_file(filename, link, output_dir, download_result):
 def download_links_via_command(command, links, result_filename):
     result = []
     for link, output_dir in links:
+        append_download_attempt_to_file(result_filename, link, output_dir)
         download_result = download_link_via_command(command, link)
         move_downloaded_files_to_output_directory(output_dir)
-        append_download_result_to_file(result_filename, link, output_dir, download_result)
+        append_download_result_to_file(result_filename, download_result)
         result.append((link, output_dir, download_result))
     return result
 
