@@ -7,6 +7,8 @@ from os.path import isabs as is_absolute_path
 from shutil import move as move_file
 from syslog import syslog, LOG_INFO
 from pathlib import Path
+from json import dumps as json_encode
+from json import loads as json_decode
 
 
 def get_env(key):
@@ -129,7 +131,18 @@ def truncate_link_file(filename):
 
 def truncate_download_result_file(filename):
     log('truncating download result file {yellow}{!r}{reset}', [filename])
-    return truncate_file(filename)
+    try:
+        fd = open(filename, 'w')
+    except Exception as open_error:
+        log('{red}could not open file {yellow}{!r}{reset}{red} for writing: {}', [filename, open_error])
+        return False
+    try:
+        fd.write('{}\n'.format(json_encode([])))
+    except Exception as write_error:
+        log('{red}could not write empty download result to file {yellow}{!r}{reset}{red}: {}', [filename, write_error])
+        return False
+    fd.close()
+    return True
 
 
 def append_download_attempt_to_file(filename, link, output_dir):
@@ -149,16 +162,44 @@ def append_download_attempt_to_file(filename, link, output_dir):
     return True
 
 
-def append_download_result_to_file(filename, download_result):
+def append_download_result_to_file(filename, link, output_directory, download_result=None):
     try:
-        fd = open(filename, 'a')
+        fd = open(filename)
     except Exception as open_error:
-        log('{red}could not open file {!r} for appending: {}', [filename, open_error])
+        log('{red}could not open file {yellow}{!r}{reset}{red} for reading: {}', [filename, open_error])
         return False
     try:
-        fd.write('{}\n'.format(download_result))
+        data = fd.read()
+    except Exception as open_error:
+        log('{red}could not read file {yellow}{!r}{reset}{red}: {}', [filename, open_error])
+        return False
+    fd.close()
+    try:
+        data = json_decode(data)
+        data_type = type(data)
+        if data_type != list:
+            raise ValueError("Excepted list, got {!r}".format(data_type))
+    except Exception as decode_error:
+        log('{red}could not decode file {yellow}{!r}{reset}{red} data: {}', [filename, decode_error])
+        return False
+    if download_result is None:
+        data.append({'link': link, 'output_directory': output_directory, 'status': 'waiting'})
+    else:
+        for item in data:
+            if item['link'] == link:
+                if download_result:
+                    item['status'] = 'downloaded'
+                else:
+                    item['status'] = 'error'
+    try:
+        fd = open(filename, 'w')
+    except Exception as open_error:
+        log('{red}could not open file {yellow}{!r}{reset}{red} for writing: {}', [filename, open_error])
+        return False
+    try:
+        fd.write('{}\n'.format(json_encode(data, indent=4)))
     except Exception as write_error:
-        log('{red}could not write download result to file {!r}: {}', [filename, write_error])
+        log('{red}could not write download result to file {yellow}{!r}{reset}{red}: {}', [filename, write_error])
         return False
     fd.close()
     return True
@@ -167,10 +208,10 @@ def append_download_result_to_file(filename, download_result):
 def download_links_via_command(command, links, result_filename):
     result = []
     for link, output_dir in links:
-        append_download_attempt_to_file(result_filename, link, output_dir)
+        append_download_result_to_file(result_filename, link, output_dir, download_result=None)
         download_result = download_link_via_command(command, link)
         move_downloaded_files_to_output_directory(output_dir)
-        append_download_result_to_file(result_filename, download_result)
+        append_download_result_to_file(result_filename, link, output_dir, download_result)
         result.append((link, output_dir, download_result))
     return result
 
