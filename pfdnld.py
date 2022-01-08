@@ -18,7 +18,7 @@ def get_env(key):
     return environ.get('PFDNLD_' + key)
 
 
-SYSLOG = True if get_env('NO_SYSLOG') is None else False
+SYSLOG = True if get_env('SYSLOG') is not None else False
 COLORS = {
     'red': '\033[1;31m',
     'white': '\033[1;37m',
@@ -554,7 +554,8 @@ if __name__ == '__main__':
                     'http://domain.tld/foo/bar/baz/filename-[[001-117]].mkv \n'
                     'Also the OUTPUT_DIRECTORY is joined with --out-dir.\n'
                     'Before/After download and moving each downloaded file to --out-dir, it pushes the download result '
-                    'to Gotify',
+                    'to Gotify.\n'
+                    'Export "PFDNLD_SYSLOG=1" to forward all logs to syslog.\n',
         formatter_class=RawTextHelpFormatter
     )
     parser.add_argument(
